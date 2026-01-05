@@ -3,57 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>Consulta de Veículo</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f4f6f8;
-  padding: 20px;
+  margin: 0;
+  padding: 0;
 }
+
+/* HEADER */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0;
+  color: #0b2545;
+}
+
+header img {
+  height: 45px;
+}
+
+/* CONTAINER */
 .container {
   max-width: 500px;
-  margin: auto;
-  background: #fff;
+  margin: 20px auto;
+  background: #ffffff;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
-h2 {
-  text-align: center;
-}
+
+/* INPUT */
 input[type="number"] {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 15px;
+  font-size: 16px;
 }
+
+/* CHECKBOX */
 .opcoes label {
-  display: block;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 15px;
 }
+
+.opcoes input {
+  margin-right: 8px;
+}
+
+/* BOTÃO */
 button {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background: #0b2545;
-  color: #fff;
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 16px;
   cursor: pointer;
 }
-button:hover {
-  background: #163a63;
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
+
+/* RESULTADO */
 #resultado {
   margin-top: 20px;
-  background: #e5e7eb;
+  background: #f1f5f9;
   padding: 15px;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 15px;
+
+  /* 🔑 ISSO RESOLVE TEXTO CORTADO */
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* LOADING */
+#loading {
+  display: none;
+  margin-top: 15px;
+  text-align: center;
+  color: #0b2545;
+  font-weight: bold;
+}
+
+/* MOBILE */
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 16px;
+  }
 }
 </style>
 </head>
 
 <body>
+
+<header>
+  <h1>Consulta de Veículo</h1>
+  <img src="logo.png" alt="Cidade Sol">
+</header>
+
 <div class="container">
-  <h2>Consulta de Veículo</h2>
 
   <input type="number" id="ordem" placeholder="Digite o Nº Ordem">
 
@@ -65,9 +130,12 @@ button:hover {
     <label><input type="checkbox" value="FRONTAL"> Frontal / Traseiro</label>
   </div>
 
-  <button onclick="buscarVeiculo()">Pesquisar</button>
+  <button id="btnBuscar" onclick="buscarVeiculo()">Pesquisar</button>
+
+  <div id="loading">Carregando...</div>
 
   <div id="resultado"></div>
+
 </div>
 
 <script>
@@ -78,20 +146,33 @@ function buscarVeiculo() {
   const campos = [...document.querySelectorAll(".opcoes input:checked")]
     .map(cb => cb.value);
 
+  const resultado = document.getElementById("resultado");
+  const loading = document.getElementById("loading");
+  const botao = document.getElementById("btnBuscar");
+
   if (!ordem) {
     alert("Informe o Nº Ordem");
     return;
   }
 
+  resultado.innerHTML = "";
+  loading.style.display = "block";
+  botao.disabled = true;
+
   fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain" },
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8"
+    },
     body: JSON.stringify({ ordem, campos })
   })
-  .then(r => r.json())
+  .then(res => res.json())
   .then(dados => {
+    loading.style.display = "none";
+    botao.disabled = false;
+
     if (dados.erro) {
-      document.getElementById("resultado").innerHTML = dados.erro;
+      resultado.innerHTML = dados.erro;
       return;
     }
 
@@ -103,13 +184,16 @@ function buscarVeiculo() {
     if (dados.ar) html += `<strong>Ar Condicionado:</strong> ${dados.ar}<br>`;
     if (dados.frontal) html += `<strong>Frontal / Traseiro:</strong> ${dados.frontal}<br>`;
 
-    document.getElementById("resultado").innerHTML = html;
+    resultado.innerHTML = html;
   })
-  .catch(() => {
-    document.getElementById("resultado").innerHTML =
-      "Erro ao consultar a planilha.";
+  .catch(err => {
+    loading.style.display = "none";
+    botao.disabled = false;
+    resultado.innerHTML = "Erro ao consultar a planilha.";
+    console.error(err);
   });
 }
 </script>
+
 </body>
 </html>
