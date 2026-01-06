@@ -21,7 +21,7 @@ header {
   align-items: center;
   background: #ffffff;
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 3px solid #0b2545;
 }
 
 header h1 {
@@ -33,7 +33,19 @@ header h1 {
 header img {
   height: 45px;
 }
-
+button {
+  background: #0b2545;
+}
+  button:hover {
+  background: #163a63;
+}
+#resultado {
+  background: #f1f5f9;
+  border-left: 4px solid #0b2545;
+}
+#loading {
+  color: #0b2545;
+}
 /* CONTAINER */
 .container {
   max-width: 500px;
@@ -126,6 +138,7 @@ button:disabled {
     <label><input type="checkbox" value="SETOR"> SETOR OU NOP</label>
     <label><input type="checkbox" value="ANO"> Ano</label>
     <label><input type="checkbox" value="POLTRONAS"> Nº Poltronas</label>
+    <label><input type="checkbox" value="SANITARIO"> Sanitário</label>
     <label><input type="checkbox" value="AR"> Ar Condicionado</label>
     <label><input type="checkbox" value="FRONTAL"> Frontal / Traseiro</label>
   </div>
@@ -183,6 +196,7 @@ function buscarVeiculo() {
     if (dados.poltronas) html += `<strong>Nº Poltronas:</strong> ${dados.poltronas}<br>`;
     if (dados.ar) html += `<strong>Ar Condicionado:</strong> ${dados.ar}<br>`;
     if (dados.frontal) html += `<strong>Frontal / Traseiro:</strong> ${dados.frontal}<br>`;
+    if (dados.sanitario) html += `<strong>Sanitário:</strong> ${dados.sanitario}<br>`;
 
     resultado.innerHTML = html;
   })
