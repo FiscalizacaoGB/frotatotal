@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Consulta de Veículo</title>
+<title>Consulta de Veículos</title>
 
 <style>
 :root {
-  --principal: #0b2545;
-  --principal-hover: #163a63;
-  --claro: #f4f6f8;
+  --azul: #0b2545;
+  --cinza: #f1f5f9;
 }
 
 body {
   font-family: Arial, sans-serif;
-  background: var(--claro);
+  background: #f4f6f8;
   margin: 0;
 }
 
@@ -24,21 +23,21 @@ header {
   align-items: center;
   background: #fff;
   padding: 12px 16px;
-  border-bottom: 4px solid var(--principal);
+  border-bottom: 4px solid var(--azul);
 }
 
 header h1 {
-  font-size: 18px;
-  color: var(--principal);
   margin: 0;
+  font-size: 18px;
+  color: var(--azul);
 }
 
 header img {
-  height: 45px;
+  height: 40px;
 }
 
 .container {
-  max-width: 520px;
+  max-width: 540px;
   margin: 20px auto;
   background: #fff;
   padding: 20px;
@@ -46,19 +45,19 @@ header img {
 }
 
 select,
-input[type="number"] {
+input {
   width: 100%;
   padding: 12px;
   margin-bottom: 12px;
-  font-size: 15px;
   border-radius: 6px;
   border: 1px solid #d1d5db;
+  font-size: 15px;
 }
 
 button {
   width: 100%;
   padding: 12px;
-  background: var(--principal);
+  background: var(--azul);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -66,24 +65,8 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background: var(--principal-hover);
-}
-
 button:disabled {
   background: #94a3b8;
-  cursor: not-allowed;
-}
-
-#resultado {
-  margin-top: 20px;
-  background: #f1f5f9;
-  padding: 15px;
-  border-left: 4px solid var(--principal);
-  border-radius: 8px;
-  font-size: 15px;
-  white-space: normal;
-  word-break: break-word;
 }
 
 #loading {
@@ -91,7 +74,27 @@ button:disabled {
   margin-top: 15px;
   text-align: center;
   font-weight: bold;
-  color: var(--principal);
+  color: var(--azul);
+}
+
+/* 🔹 CARDS */
+.card {
+  background: var(--cinza);
+  border-left: 5px solid var(--azul);
+  padding: 14px;
+  margin-top: 15px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.card h3 {
+  margin: 0 0 8px 0;
+  color: var(--azul);
+  font-size: 16px;
+}
+
+.card p {
+  margin: 4px 0;
 }
 </style>
 </head>
@@ -99,27 +102,21 @@ button:disabled {
 <body>
 
 <header>
-  <h1>Consulta de Veículo</h1>
+  <h1>Consulta de Veículos</h1>
   <img src="logo.png" alt="Cidade Sol">
 </header>
 
 <div class="container">
 
+  <select id="linha">
+    <option value="">Selecione – Linha</option>
+  </select>
+
   <select id="setor">
     <option value="">Selecione – Setor / NOP</option>
   </select>
 
-  <select id="ano">
-    <option value="">Selecione – Ano</option>
-  </select>
-
-  <select id="ar">
-    <option value="">Selecione – Ar Condicionado</option>
-    <option value="SIM">Sim</option>
-    <option value="NÃO">Não</option>
-  </select>
-
-  <input type="number" id="ordem" placeholder="(Opcional) Nº Ordem">
+  <input type="number" id="ordem" placeholder="(Opcional) Nº de Ordem">
 
   <button id="btnBuscar" onclick="buscar()">Pesquisar</button>
 
@@ -129,84 +126,83 @@ button:disabled {
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbz-NYps-KuC1vc4PHpfLE2AVJZE6ohJQXMjrO2TyWciF4I6rJmYipWgxgZ1Z9w5HKTT/exec";
+const API_URL = "SUA_URL_DO_APPS_SCRIPT";
 
-document.addEventListener("DOMContentLoaded", carregarFiltros);
-
-function carregarFiltros() {
+/* 🔹 CARREGA FILTROS */
+document.addEventListener("DOMContentLoaded", () => {
   fetch(API_URL)
-    .then(res => res.json())
+    .then(r => r.json())
     .then(dados => {
-      if (dados.erro) {
-        alert(dados.erro);
-        return;
-      }
-      preencherSelect("setor", dados.setores);
-      preencherSelect("ano", dados.anos);
+      preencher("linha", dados.linhas);
+      preencher("setor", dados.setores);
     })
     .catch(() => alert("Erro ao carregar filtros"));
-}
+});
 
-function preencherSelect(id, lista) {
+function preencher(id, lista) {
   const select = document.getElementById(id);
-  if (!lista || select.options.length > 1) return;
-
-  lista
-    .slice()
-    .sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .forEach(item => {
-      const opt = document.createElement("option");
-      opt.value = item;
-      opt.textContent = item;
-      select.appendChild(opt);
-    });
+  lista.forEach(item => {
+    const op = document.createElement("option");
+    op.value = item;
+    op.textContent = item;
+    select.appendChild(op);
+  });
 }
 
+/* 🔎 BUSCA */
 function buscar() {
-  const ordem = document.getElementById("ordem").value;
-  const setor = document.getElementById("setor").value;
-  const ano = document.getElementById("ano").value;
-  const ar = document.getElementById("ar").value;
+  const linha = linhaEl.value;
+  const setor = setorEl.value;
+  const ordem = ordemEl.value;
 
   const resultado = document.getElementById("resultado");
   const loading = document.getElementById("loading");
-  const botao = document.getElementById("btnBuscar");
+  const btn = document.getElementById("btnBuscar");
 
   loading.style.display = "block";
   resultado.innerHTML = "";
-  botao.disabled = true;
+  btn.disabled = true;
 
   fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ ordem, setor, ano, ar })
+    body: JSON.stringify({ linha, setor, ordem })
   })
-  .then(res => res.json())
-  .then(dados => {
+  .then(r => r.json())
+  .then(lista => {
     loading.style.display = "none";
-    botao.disabled = false;
+    btn.disabled = false;
 
-    if (!dados.length) {
+    if (!lista.length) {
       resultado.innerHTML = "Nenhum veículo encontrado.";
       return;
     }
 
-    resultado.innerHTML = dados.map(v => `
-      <strong>Nº Ordem:</strong> ${v.ordem}<br>
-      <strong>Setor / NOP:</strong> ${v.setor}<br>
-      <strong>Ano:</strong> ${v.ano}<br>
-      <strong>Ar Condicionado:</strong> ${v.ar}<br>
-      <strong>Poltronas:</strong> ${v.poltronas}<br>
-      <strong>Sanitário:</strong> ${v.sanitario}<br>
-      <hr>
+    resultado.innerHTML = lista.map(v => `
+      <div class="card">
+        <h3>Ordem ${v.ordem}</h3>
+        <p><strong>Linha:</strong> ${v.linha}</p>
+        <p><strong>Setor / NOP:</strong> ${v.setor}</p>
+        <p><strong>Serviço:</strong> ${v.servico}</p>
+        <p><strong>Ano:</strong> ${v.ano}</p>
+        <p><strong>Poltronas:</strong> ${v.poltronas}</p>
+        <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+        <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
+        <p><strong>Frontal / Traseiro:</strong> ${v.frontal}</p>
+      </div>
     `).join("");
   })
   .catch(() => {
     loading.style.display = "none";
-    botao.disabled = false;
+    btn.disabled = false;
     resultado.innerHTML = "Erro ao consultar dados.";
   });
 }
+
+/* atalhos */
+const linhaEl = document.getElementById("linha");
+const setorEl = document.getElementById("setor");
+const ordemEl = document.getElementById("ordem");
 </script>
 
 </body>
