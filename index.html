@@ -126,7 +126,7 @@ button:disabled {
 </div>
 
 <script>
-const API_URL = "SUA_URL_DO_APPS_SCRIPT";
+const API_URL = "https://script.google.com/macros/s/AKfycbyIrleQRxrBNJ3ddhJyr6bGHLBEvIFIugcxzpDHkYHvjOyxNU6kIKmkAu0RsZXZmiTI/exec";
 
 /* 🔹 CARREGA FILTROS */
 document.addEventListener("DOMContentLoaded", () => {
@@ -136,24 +136,29 @@ document.addEventListener("DOMContentLoaded", () => {
       preencher("linha", dados.linhas);
       preencher("setor", dados.setores);
     })
-    .catch(() => alert("Erro ao carregar filtros"));
+    .catch(err => {
+      console.error(err);
+      alert("Erro ao carregar filtros");
+    });
 });
 
 function preencher(id, lista) {
   const select = document.getElementById(id);
-  lista.forEach(item => {
-    const op = document.createElement("option");
-    op.value = item;
-    op.textContent = item;
-    select.appendChild(op);
-  });
+  lista
+    .sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .forEach(item => {
+      const op = document.createElement("option");
+      op.value = item;
+      op.textContent = item;
+      select.appendChild(op);
+    });
 }
 
 /* 🔎 BUSCA */
 function buscar() {
-  const linha = linhaEl.value;
-  const setor = setorEl.value;
-  const ordem = ordemEl.value;
+  const linha = document.getElementById("linha").value;
+  const setor = document.getElementById("setor").value;
+  const ordem = document.getElementById("ordem").value;
 
   const resultado = document.getElementById("resultado");
   const loading = document.getElementById("loading");
@@ -185,7 +190,7 @@ function buscar() {
         <p><strong>Setor / NOP:</strong> ${v.setor}</p>
         <p><strong>Serviço:</strong> ${v.servico}</p>
         <p><strong>Ano:</strong> ${v.ano}</p>
-        <p><strong>Poltronas:</strong> ${v.poltronas}</p>
+        <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
         <p><strong>Sanitário:</strong> ${v.sanitario}</p>
         <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
         <p><strong>Frontal / Traseiro:</strong> ${v.frontal}</p>
@@ -198,12 +203,8 @@ function buscar() {
     resultado.innerHTML = "Erro ao consultar dados.";
   });
 }
-
-/* atalhos */
-const linhaEl = document.getElementById("linha");
-const setorEl = document.getElementById("setor");
-const ordemEl = document.getElementById("ordem");
 </script>
+
 
 </body>
 </html>
