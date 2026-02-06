@@ -3,88 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>Consulta de Veículo</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  margin: 0;
-  padding: 0;
+:root {
+  --principal: #0b2545;
+  --principal-hover: #163a63;
+  --claro: #f4f6f8;
 }
 
-/* HEADER */
+body {
+  font-family: Arial, sans-serif;
+  background: var(--claro);
+  margin: 0;
+}
+
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #ffffff;
+  background: #fff;
   padding: 12px 16px;
-  border-bottom: 3px solid #0b2545;
+  border-bottom: 4px solid var(--principal);
 }
 
 header h1 {
   font-size: 18px;
+  color: var(--principal);
   margin: 0;
-  color: #0b2545;
 }
 
 header img {
   height: 45px;
 }
-button {
-  background: #0b2545;
-}
-  button:hover {
-  background: #163a63;
-}
-#resultado {
-  background: #f1f5f9;
-  border-left: 4px solid #0b2545;
-}
-#loading {
-  color: #0b2545;
-}
-/* CONTAINER */
+
 .container {
-  max-width: 500px;
+  max-width: 520px;
   margin: 20px auto;
-  background: #ffffff;
+  background: #fff;
   padding: 20px;
   border-radius: 12px;
 }
 
-/* INPUT */
+select,
 input[type="number"] {
   width: 100%;
   padding: 12px;
-  margin-bottom: 15px;
-  font-size: 16px;
-}
-
-/* CHECKBOX */
-.opcoes label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
 }
 
-.opcoes input {
-  margin-right: 8px;
-}
-
-/* BOTÃO */
 button {
   width: 100%;
   padding: 12px;
-  background: #0b2545;
-  color: #ffffff;
+  background: var(--principal);
+  color: #fff;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
+}
+
+button:hover {
+  background: var(--principal-hover);
 }
 
 button:disabled {
@@ -92,33 +75,23 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* RESULTADO */
 #resultado {
   margin-top: 20px;
   background: #f1f5f9;
   padding: 15px;
+  border-left: 4px solid var(--principal);
   border-radius: 8px;
   font-size: 15px;
-
-  /* 🔑 ISSO RESOLVE TEXTO CORTADO */
   white-space: normal;
   word-break: break-word;
 }
 
-/* LOADING */
 #loading {
   display: none;
   margin-top: 15px;
   text-align: center;
-  color: #0b2545;
   font-weight: bold;
-}
-
-/* MOBILE */
-@media (max-width: 480px) {
-  header h1 {
-    font-size: 16px;
-  }
+  color: var(--principal);
 }
 </style>
 </head>
@@ -132,21 +105,25 @@ button:disabled {
 
 <div class="container">
 
-  <input type="number" id="ordem" placeholder="Digite o Nº Ordem">
+  <select id="setor">
+    <option value="">Selecione – Setor / NOP</option>
+  </select>
 
-  <div class="opcoes">
-    <label><input type="checkbox" value="SETOR"> SETOR OU NOP</label>
-    <label><input type="checkbox" value="ANO"> Ano</label>
-    <label><input type="checkbox" value="POLTRONAS"> Nº Poltronas</label>
-    <label><input type="checkbox" value="SANITARIO"> Sanitário</label>
-    <label><input type="checkbox" value="AR"> Ar Condicionado</label>
-    <label><input type="checkbox" value="FRONTAL"> Frontal / Traseiro</label>
-  </div>
+  <select id="ano">
+    <option value="">Selecione – Ano</option>
+  </select>
 
-  <button id="btnBuscar" onclick="buscarVeiculo()">Pesquisar</button>
+  <select id="ar">
+    <option value="">Selecione – Ar Condicionado</option>
+    <option value="SIM">Sim</option>
+    <option value="NÃO">Não</option>
+  </select>
+
+  <input type="number" id="ordem" placeholder="(Opcional) Nº Ordem">
+
+  <button id="btnBuscar" onclick="buscar()">Pesquisar</button>
 
   <div id="loading">Carregando...</div>
-
   <div id="resultado"></div>
 
 </div>
@@ -154,57 +131,80 @@ button:disabled {
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbz-NYps-KuC1vc4PHpfLE2AVJZE6ohJQXMjrO2TyWciF4I6rJmYipWgxgZ1Z9w5HKTT/exec";
 
-function buscarVeiculo() {
+document.addEventListener("DOMContentLoaded", carregarFiltros);
+
+function carregarFiltros() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(dados => {
+      if (dados.erro) {
+        alert(dados.erro);
+        return;
+      }
+      preencherSelect("setor", dados.setores);
+      preencherSelect("ano", dados.anos);
+    })
+    .catch(() => alert("Erro ao carregar filtros"));
+}
+
+function preencherSelect(id, lista) {
+  const select = document.getElementById(id);
+  if (!lista || select.options.length > 1) return;
+
+  lista
+    .slice()
+    .sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = item;
+      opt.textContent = item;
+      select.appendChild(opt);
+    });
+}
+
+function buscar() {
   const ordem = document.getElementById("ordem").value;
-  const campos = [...document.querySelectorAll(".opcoes input:checked")]
-    .map(cb => cb.value);
+  const setor = document.getElementById("setor").value;
+  const ano = document.getElementById("ano").value;
+  const ar = document.getElementById("ar").value;
 
   const resultado = document.getElementById("resultado");
   const loading = document.getElementById("loading");
   const botao = document.getElementById("btnBuscar");
 
-  if (!ordem) {
-    alert("Informe o Nº Ordem");
-    return;
-  }
-
-  resultado.innerHTML = "";
   loading.style.display = "block";
+  resultado.innerHTML = "";
   botao.disabled = true;
 
   fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify({ ordem, campos })
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ ordem, setor, ano, ar })
   })
   .then(res => res.json())
   .then(dados => {
     loading.style.display = "none";
     botao.disabled = false;
 
-    if (dados.erro) {
-      resultado.innerHTML = dados.erro;
+    if (!dados.length) {
+      resultado.innerHTML = "Nenhum veículo encontrado.";
       return;
     }
 
-    let html = `<strong>Linha:</strong> ${dados.linha}<br>`;
-
-    if (dados.setor) html += `<strong>Setor / NOP:</strong> ${dados.setor}<br>`;
-    if (dados.ano) html += `<strong>Ano:</strong> ${dados.ano}<br>`;
-    if (dados.poltronas) html += `<strong>Nº Poltronas:</strong> ${dados.poltronas}<br>`;
-    if (dados.ar) html += `<strong>Ar Condicionado:</strong> ${dados.ar}<br>`;
-    if (dados.frontal) html += `<strong>Frontal / Traseiro:</strong> ${dados.frontal}<br>`;
-    if (dados.sanitario) html += `<strong>Sanitário:</strong> ${dados.sanitario}<br>`;
-
-    resultado.innerHTML = html;
+    resultado.innerHTML = dados.map(v => `
+      <strong>Nº Ordem:</strong> ${v.ordem}<br>
+      <strong>Setor / NOP:</strong> ${v.setor}<br>
+      <strong>Ano:</strong> ${v.ano}<br>
+      <strong>Ar Condicionado:</strong> ${v.ar}<br>
+      <strong>Poltronas:</strong> ${v.poltronas}<br>
+      <strong>Sanitário:</strong> ${v.sanitario}<br>
+      <hr>
+    `).join("");
   })
-  .catch(err => {
+  .catch(() => {
     loading.style.display = "none";
     botao.disabled = false;
-    resultado.innerHTML = "Erro ao consultar a planilha.";
-    console.error(err);
+    resultado.innerHTML = "Erro ao consultar dados.";
   });
 }
 </script>
