@@ -121,6 +121,13 @@ button:disabled {
 .card p {
   margin: 4px 0;
 }
+
+.operacao-item {
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 10px;
+}
 </style>
 </head>
 
@@ -140,7 +147,7 @@ button:disabled {
   </div>
 
   <!-- ===============================
-       ABA CONSULTA (ORIGINAL)
+       ABA CONSULTA
   =============================== -->
   <div id="aba-consulta">
 
@@ -179,7 +186,7 @@ button:disabled {
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbymBfhdiJb_XZcq7j6m4m_IFONUrdSnz1krrWyEY_7o98Hv0SDRCm9gLTIB0R2clYcK/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzT7o_xUP0tT2tPlqjXDDMKcqjq67Ycne_0Ip9l5cR1yVIjdHCJzpGr6P1jEgGKNkSH/exec";
 
 /* ===============================
    TROCA DE ABAS
@@ -200,7 +207,7 @@ function trocarAba(aba) {
 }
 
 /* ===============================
-   CARREGA FILTROS (ORIGINAL)
+   CARREGA FILTROS
 =============================== */
 document.addEventListener("DOMContentLoaded", () => {
   fetch(API_URL)
@@ -208,20 +215,17 @@ document.addEventListener("DOMContentLoaded", () => {
     .then(dados => {
       preencher("linha", dados.linhas);
       preencher("setor", dados.setores);
-    })
-    .catch(() => alert("Erro ao carregar filtros"));
+    });
 });
 
 function preencher(id, lista) {
   const select = document.getElementById(id);
-  lista
-    .sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .forEach(item => {
-      const op = document.createElement("option");
-      op.value = item;
-      op.textContent = item;
-      select.appendChild(op);
-    });
+  lista.sort((a, b) => a.localeCompare(b, "pt-BR")).forEach(item => {
+    const op = document.createElement("option");
+    op.value = item;
+    op.textContent = item;
+    select.appendChild(op);
+  });
 }
 
 /* ===============================
@@ -268,77 +272,11 @@ function buscar() {
         <p><strong>Frontal / Traseiro:</strong> ${v.frontal}</p>
       </div>
     `).join("");
-  })
-  .catch(() => {
-    loading.style.display = "none";
-    btn.disabled = false;
-    resultado.innerHTML = "Erro ao consultar dados.";
   });
 }
 
 /* ===============================
-   STATUS DA FROTA – ATUALIZAR
-=============================== */
-function atualizarStatus() {
-  const res = document.getElementById("resultadoStatus");
-  const load = document.getElementById("loadingStatus");
-
-  res.innerHTML = "";
-  load.style.display = "block";
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action: "statusFrota" })
-  })
-  .then(r => r.json())
-  .then(dados => {
-    load.style.display = "none";
-
-    /* ===============================
-       CARD MAIOR – FROTA DISPONÍVEL
-    =============================== */
-    let htmlDisponiveis = `
-      <div class="card">
-        <h3>Frota Disponível</h3>
-        ${!dados.disponiveis.length 
-          ? "<p>Nenhum veículo disponível.</p>"
-          : dados.disponiveis.map(v => `
-            <div style="margin-top:10px; padding:10px; background:#fff; border-radius:8px;">
-              <p><strong>Ordem:</strong> ${v.ordem}</p>
-              <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
-              <p><strong>Sanitário:</strong> ${v.sanitario}</p>
-              <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
-            </div>
-          `).join("")}
-      </div>
-    `;
-
-    /* ===============================
-       CARD MAIOR – VEÍCULOS RETIDOS
-    =============================== */
-    let htmlRetidos = `
-      <div class="card">
-        <h3>Veículos Retidos</h3>
-        ${!dados.retidos.length 
-          ? "<p>Nenhum veículo retido.</p>"
-          : dados.retidos.map(v => `
-            <div style="margin-top:10px; padding:10px; background:#fff; border-radius:8px;">
-              <p><strong>Carro:</strong> ${v.carro}</p>
-              <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
-              <p><strong>Garagem:</strong> ${v.garagem}</p>
-            </div>
-          `).join("")}
-      </div>
-    `;
-
-    res.innerHTML = htmlDisponiveis + htmlRetidos;
-  });
-}
-
-
-/* ===============================
-   STATUS DA FROTA – PESQUISAR
+   STATUS – PESQUISAR (MULTI-HORÁRIOS)
 =============================== */
 function buscarStatus() {
   const ordem = document.getElementById("ordemStatus").value;
@@ -362,19 +300,24 @@ function buscarStatus() {
     let html = `<div class="card"><h3>Ordem ${ordem}</h3>`;
 
     if (v.status === "Operação") {
-      html += `
-        <p><strong>Status:</strong> Em Operação</p>
-        <p><strong>Origem:</strong> ${v.origem}</p>
-        <p><strong>Destino:</strong> ${v.destino}</p>
-        <p><strong>Horário:</strong> ${v.horario}</p>
-        <p><strong>Motorista:</strong> ${v.motorista}</p>
-      `;
+      html += `<p><strong>Status:</strong> Em Operação</p>`;
+
+      v.operacoes.forEach(o => {
+        html += `
+          <div class="operacao-item">
+            <p><strong>Origem:</strong> ${o.origem}</p>
+            <p><strong>Destino:</strong> ${o.destino}</p>
+            <p><strong>Horário:</strong> ${o.horario}</p>
+            <p><strong>Motorista:</strong> ${o.motorista}</p>
+          </div>
+        `;
+      });
+
     } else if (v.status === "Retido") {
       html += `
         <p><strong>Status:</strong> Retido</p>
         <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
-        <p><strong>Garagem:</strong> ${v.garagem}</p>
-      `;
+        <p><strong>Garagem:</strong> ${v.garagem}</p>`;
     } else {
       html += `<p><strong>Status:</strong> Disponível</p>`;
     }
