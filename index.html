@@ -44,6 +44,30 @@ header img {
   border-radius: 12px;
 }
 
+/* 🔹 TABS */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 10px;
+  background: #e5e7eb;
+  color: var(--azul);
+  border-radius: 8px;
+}
+
+.tabs button.active {
+  background: var(--azul);
+  color: #fff;
+}
+
+.hidden {
+  display: none;
+}
+
 select,
 input {
   width: 100%;
@@ -69,7 +93,8 @@ button:disabled {
   background: #94a3b8;
 }
 
-#loading {
+#loading,
+#loadingStatus {
   display: none;
   margin-top: 15px;
   text-align: center;
@@ -108,27 +133,75 @@ button:disabled {
 
 <div class="container">
 
-  <select id="linha">
-    <option value="">Selecione – Linha</option>
-  </select>
+  <!-- 🔹 ABAS -->
+  <div class="tabs">
+    <button class="active" onclick="trocarAba('consulta')">Consulta de Veículos</button>
+    <button onclick="trocarAba('status')">Status da Frota</button>
+  </div>
 
-  <select id="setor">
-    <option value="">Selecione – Setor / NOP</option>
-  </select>
+  <!-- ===============================
+       ABA CONSULTA (ORIGINAL)
+  =============================== -->
+  <div id="aba-consulta">
 
-  <input type="number" id="ordem" placeholder="(Opcional) Nº de Ordem">
+    <select id="linha">
+      <option value="">Selecione – Linha</option>
+    </select>
 
-  <button id="btnBuscar" onclick="buscar()">Pesquisar</button>
+    <select id="setor">
+      <option value="">Selecione – Setor / NOP</option>
+    </select>
 
-  <div id="loading">Carregando...</div>
-  <div id="resultado"></div>
+    <input type="number" id="ordem" placeholder="(Opcional) Nº de Ordem">
+
+    <button id="btnBuscar" onclick="buscar()">Pesquisar</button>
+
+    <div id="loading">Carregando...</div>
+    <div id="resultado"></div>
+
+  </div>
+
+  <!-- ===============================
+       ABA STATUS DA FROTA
+  =============================== -->
+  <div id="aba-status" class="hidden">
+
+    <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
+
+    <input type="number" id="ordemStatus" placeholder="Pesquisar por Nº de Ordem">
+    <button onclick="buscarStatus()">Pesquisar</button>
+
+    <div id="loadingStatus">Carregando...</div>
+    <div id="resultadoStatus"></div>
+
+  </div>
 
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyIrleQRxrBNJ3ddhJyr6bGHLBEvIFIugcxzpDHkYHvjOyxNU6kIKmkAu0RsZXZmiTI/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxQtiFbPsNBltJymCU2uL1LpnAwrXO4ZJGHYVb-FLCfg5nOnx3Nm3NhSeDqpt2Qx_x5/exec";
 
-/* 🔹 CARREGA FILTROS */
+/* ===============================
+   TROCA DE ABAS
+=============================== */
+function trocarAba(aba) {
+  document.getElementById("aba-consulta").classList.add("hidden");
+  document.getElementById("aba-status").classList.add("hidden");
+
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+
+  if (aba === "consulta") {
+    document.getElementById("aba-consulta").classList.remove("hidden");
+    document.querySelectorAll(".tabs button")[0].classList.add("active");
+  } else {
+    document.getElementById("aba-status").classList.remove("hidden");
+    document.querySelectorAll(".tabs button")[1].classList.add("active");
+  }
+}
+
+/* ===============================
+   CARREGA FILTROS (ORIGINAL)
+=============================== */
 document.addEventListener("DOMContentLoaded", () => {
   fetch(API_URL)
     .then(r => r.json())
@@ -136,10 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
       preencher("linha", dados.linhas);
       preencher("setor", dados.setores);
     })
-    .catch(err => {
-      console.error(err);
-      alert("Erro ao carregar filtros");
-    });
+    .catch(() => alert("Erro ao carregar filtros"));
 });
 
 function preencher(id, lista) {
@@ -154,7 +224,9 @@ function preencher(id, lista) {
     });
 }
 
-/* 🔎 BUSCA */
+/* ===============================
+   BUSCA ORIGINAL
+=============================== */
 function buscar() {
   const linha = document.getElementById("linha").value;
   const setor = document.getElementById("setor").value;
@@ -203,8 +275,89 @@ function buscar() {
     resultado.innerHTML = "Erro ao consultar dados.";
   });
 }
-</script>
 
+/* ===============================
+   STATUS DA FROTA – ATUALIZAR
+=============================== */
+function atualizarStatus() {
+  const res = document.getElementById("resultadoStatus");
+  const load = document.getElementById("loadingStatus");
+
+  res.innerHTML = "";
+  load.style.display = "block";
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "statusFrota" })
+  })
+  .then(r => r.json())
+  .then(lista => {
+    load.style.display = "none";
+
+    if (!lista.length) {
+      res.innerHTML = "Nenhum veículo disponível.";
+      return;
+    }
+
+    res.innerHTML = lista.map(v => `
+      <div class="card">
+        <h3>Ordem ${v.ordem}</h3>
+        <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
+        <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+        <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
+      </div>
+    `).join("");
+  });
+}
+
+/* ===============================
+   STATUS DA FROTA – PESQUISAR
+=============================== */
+function buscarStatus() {
+  const ordem = document.getElementById("ordemStatus").value;
+  if (!ordem) return alert("Informe o Nº de Ordem");
+
+  const res = document.getElementById("resultadoStatus");
+  const load = document.getElementById("loadingStatus");
+
+  res.innerHTML = "";
+  load.style.display = "block";
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "buscarStatus", ordem })
+  })
+  .then(r => r.json())
+  .then(v => {
+    load.style.display = "none";
+
+    let html = `<div class="card"><h3>Ordem ${ordem}</h3>`;
+
+    if (v.status === "Operação") {
+      html += `
+        <p><strong>Status:</strong> Em Operação</p>
+        <p><strong>Origem:</strong> ${v.origem}</p>
+        <p><strong>Destino:</strong> ${v.destino}</p>
+        <p><strong>Horário:</strong> ${v.horario}</p>
+        <p><strong>Motorista:</strong> ${v.motorista}</p>
+      `;
+    } else if (v.status === "Retido") {
+      html += `
+        <p><strong>Status:</strong> Retido</p>
+        <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+        <p><strong>Garagem:</strong> ${v.garagem}</p>
+      `;
+    } else {
+      html += `<p><strong>Status:</strong> Disponível</p>`;
+    }
+
+    html += "</div>";
+    res.innerHTML = html;
+  });
+}
+</script>
 
 </body>
 </html>
