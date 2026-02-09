@@ -124,6 +124,13 @@ button {
   padding: 10px;
   margin-top: 10px;
 }
+  .acoes-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* espaçamento entre os botões */
+  margin-bottom: 12px;
+}
+
 </style>
 </head>
 
@@ -153,8 +160,10 @@ button {
 
   <!-- ABA STATUS -->
   <div id="aba-status" class="hidden">
-    <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
-    <button onclick="buscarPlantao()">Plantão</button>
+<div class="acoes-status">
+  <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
+  <button onclick="buscarPlantao()">Plantão</button>
+</div>
 
     <input type="number" id="ordemStatus" placeholder="Pesquisar por Nº de Ordem">
     <button onclick="buscarStatus()">Pesquisar</button>
@@ -205,9 +214,11 @@ function atualizarStatus() {
     load.style.display = "none";
 
     const totalDisponiveis = dados.disponiveis.length;
-    const totalComAr = dados.disponiveis.filter(v =>
-      String(v.ar).toUpperCase() === "SIM"
-    ).length;
+   const totalComAr = dados.disponiveis.filter(v => {
+  const valor = String(v.ar || "").trim().toUpperCase();
+  return valor === "SIM";
+}).length;
+
 
     const htmlDisponiveis = `
       <div class="card">
