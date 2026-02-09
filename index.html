@@ -44,7 +44,7 @@ header img {
   border-radius: 12px;
 }
 
-/* 🔹 TABS */
+/* TABS */
 .tabs {
   display: flex;
   gap: 8px;
@@ -98,7 +98,7 @@ button {
   color: var(--azul);
 }
 
-/* 🔹 CARDS */
+/* CARDS */
 .card {
   background: var(--cinza);
   border-left: 5px solid var(--azul);
@@ -124,13 +124,13 @@ button {
   padding: 10px;
   margin-top: 10px;
 }
-  .acoes-status {
+
+.acoes-status {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* espaçamento entre os botões */
+  gap: 12px;
   margin-bottom: 12px;
 }
-
 </style>
 </head>
 
@@ -160,10 +160,11 @@ button {
 
   <!-- ABA STATUS -->
   <div id="aba-status" class="hidden">
-<div class="acoes-status">
-  <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
-  <button onclick="buscarPlantao()">Plantão</button>
-</div>
+
+    <div class="acoes-status">
+      <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
+      <button onclick="buscarPlantao()">Plantão</button>
+    </div>
 
     <input type="number" id="ordemStatus" placeholder="Pesquisar por Nº de Ordem">
     <button onclick="buscarStatus()">Pesquisar</button>
@@ -177,9 +178,7 @@ button {
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwTrIUfXiuvD1rz5YrNE6Ox-cuDLsyKr3EPvPboVza3lHJ_wjFr9XF__bAyuroc123n/exec";
 
-/* ===============================
-   TROCA DE ABAS
-=============================== */
+/* TROCA DE ABAS */
 function trocarAba(aba) {
   document.getElementById("aba-consulta").classList.add("hidden");
   document.getElementById("aba-status").classList.add("hidden");
@@ -194,9 +193,68 @@ function trocarAba(aba) {
   }
 }
 
-/* ===============================
-   ATUALIZAR STATUS DA FROTA
-=============================== */
+/* CARREGA FILTROS */
+document.addEventListener("DOMContentLoaded", () => {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(dados => {
+      preencher("linha", dados.linhas);
+      preencher("setor", dados.setores);
+    })
+    .catch(() => alert("Erro ao carregar filtros"));
+});
+
+function preencher(id, lista) {
+  const select = document.getElementById(id);
+  lista.sort((a, b) => a.localeCompare("pt-BR")).forEach(item => {
+    const op = document.createElement("option");
+    op.value = item;
+    op.textContent = item;
+    select.appendChild(op);
+  });
+}
+
+/* CONSULTA DE VEÍCULOS */
+function buscar() {
+  const linha = document.getElementById("linha").value;
+  const setor = document.getElementById("setor").value;
+  const ordem = document.getElementById("ordem").value;
+  const resultado = document.getElementById("resultado");
+  const loading = document.getElementById("loading");
+
+  loading.style.display = "block";
+  resultado.innerHTML = "";
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ linha, setor, ordem })
+  })
+  .then(r => r.json())
+  .then(lista => {
+    loading.style.display = "none";
+    if (!lista.length) {
+      resultado.innerHTML = "Nenhum veículo encontrado.";
+      return;
+    }
+
+    resultado.innerHTML = lista.map(v => `
+      <div class="card">
+        <h3>Ordem ${v.ordem}</h3>
+        <p><strong>Linha:</strong> ${v.linha}</p>
+        <p><strong>Setor / NOP:</strong> ${v.setor}</p>
+        <p><strong>Serviço:</strong> ${v.servico}</p>
+        <p><strong>Ano:</strong> ${v.ano}</p>
+        <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
+        <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+        <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
+        <p><strong>Frontal / Traseiro:</strong> ${v.frontal}</p>
+      </div>
+    `).join("");
+  });
+}
+
+/* STATUS – ATUALIZAR */
 function atualizarStatus() {
   const res = document.getElementById("resultadoStatus");
   const load = document.getElementById("loadingStatus");
@@ -213,52 +271,37 @@ function atualizarStatus() {
   .then(dados => {
     load.style.display = "none";
 
-    const totalDisponiveis = dados.disponiveis.length;
-   const totalComAr = dados.disponiveis.filter(v => {
-  const valor = String(v.ar || "").trim().toUpperCase();
-  return valor === "SIM";
-}).length;
+    const total = dados.disponiveis.length;
+    const totalComAr = dados.disponiveis.filter(v =>
+      String(v.ar || "").trim().toUpperCase() === "SIM"
+    ).length;
 
-
-    const htmlDisponiveis = `
+    res.innerHTML = `
       <div class="card">
         <h3>Frota Disponível</h3>
-        <p><strong>Total de veículos disponíveis:</strong> ${totalDisponiveis}</p>
+        <p><strong>Total disponíveis:</strong> ${total}</p>
         <p><strong>Com Ar-Condicionado:</strong> ${totalComAr}</p>
-
-        ${totalDisponiveis
-          ? dados.disponiveis.map(v => `
-              <div class="operacao-item">
-                <p><strong>Ordem:</strong> ${v.ordem}</p>
-                <p><strong>Poltronas:</strong> ${v.poltronas}</p>
-                <p><strong>Sanitário:</strong> ${v.sanitario}</p>
-                <p><strong>Ar:</strong> ${v.ar}</p>
-              </div>
-            `).join("")
-          : "<p>Nenhum veículo disponível.</p>"}
-      </div>`;
-
-    const htmlRetidos = `
+        ${dados.disponiveis.map(v => `
+          <div class="operacao-item">
+            <p><strong>Ordem:</strong> ${v.ordem}</p>
+            <p><strong>Poltronas:</strong> ${v.poltronas}</p>
+            <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+            <p><strong>Ar:</strong> ${v.ar}</p>
+          </div>`).join("")}
+      </div>
       <div class="card">
         <h3>Veículos Retidos</h3>
-        ${dados.retidos.length
-          ? dados.retidos.map(v => `
-              <div class="operacao-item">
-                <p><strong>Carro:</strong> ${v.carro}</p>
-                <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
-                <p><strong>Garagem:</strong> ${v.garagem}</p>
-              </div>
-            `).join("")
-          : "<p>Nenhum veículo retido.</p>"}
+        ${dados.retidos.map(v => `
+          <div class="operacao-item">
+            <p><strong>Carro:</strong> ${v.carro}</p>
+            <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+            <p><strong>Garagem:</strong> ${v.garagem}</p>
+          </div>`).join("")}
       </div>`;
-
-    res.innerHTML = htmlDisponiveis + htmlRetidos;
   });
 }
 
-/* ===============================
-   PLANTÃO
-=============================== */
+/* STATUS – PLANTÃO */
 function buscarPlantao() {
   const res = document.getElementById("resultadoStatus");
   const load = document.getElementById("loadingStatus");
@@ -274,7 +317,6 @@ function buscarPlantao() {
   .then(r => r.json())
   .then(lista => {
     load.style.display = "none";
-
     if (!lista.length) {
       res.innerHTML = "<p>Nenhum plantão encontrado.</p>";
       return;
@@ -289,15 +331,12 @@ function buscarPlantao() {
             <p><strong>Destino:</strong> ${p.destino}</p>
             <p><strong>Horário:</strong> ${p.horario}</p>
             <p><strong>Motorista:</strong> ${p.motorista}</p>
-          </div>
-        `).join("")}
+          </div>`).join("")}
       </div>`;
   });
 }
 
-/* ===============================
-   BUSCAR STATUS INDIVIDUAL
-=============================== */
+/* STATUS – BUSCAR POR ORDEM */
 function buscarStatus() {
   const ordem = document.getElementById("ordemStatus").value;
   if (!ordem) return alert("Informe o Nº de Ordem");
@@ -310,7 +349,6 @@ function buscarStatus() {
   .then(r => r.json())
   .then(v => {
     let html = `<div class="card"><h3>Ordem ${ordem}</h3>`;
-
     if (v.status === "Operação") {
       html += `<p><strong>Status:</strong> Em Operação</p>`;
       v.operacoes.forEach(o => {
@@ -323,14 +361,12 @@ function buscarStatus() {
           </div>`;
       });
     } else if (v.status === "Retido") {
-      html += `
-        <p><strong>Status:</strong> Retido</p>
-        <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
-        <p><strong>Garagem:</strong> ${v.garagem}</p>`;
+      html += `<p><strong>Status:</strong> Retido</p>
+               <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+               <p><strong>Garagem:</strong> ${v.garagem}</p>`;
     } else {
       html += `<p><strong>Status:</strong> Disponível</p>`;
     }
-
     document.getElementById("resultadoStatus").innerHTML = html + "</div>";
   });
 }
