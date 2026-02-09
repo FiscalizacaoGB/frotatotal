@@ -179,7 +179,7 @@ button:disabled {
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxQtiFbPsNBltJymCU2uL1LpnAwrXO4ZJGHYVb-FLCfg5nOnx3Nm3NhSeDqpt2Qx_x5/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxA2sM8ZwlszUGqgMUo-YtegPTWzKwkIowpRewixlGIHkWCWf7j2_eS8oUQniO6UQry/exec";
 
 /* ===============================
    TROCA DE ABAS
@@ -292,24 +292,50 @@ function atualizarStatus() {
     body: JSON.stringify({ action: "statusFrota" })
   })
   .then(r => r.json())
-  .then(lista => {
+  .then(dados => {
     load.style.display = "none";
 
-    if (!lista.length) {
-      res.innerHTML = "Nenhum veículo disponível.";
-      return;
-    }
-
-    res.innerHTML = lista.map(v => `
+    /* ===============================
+       CARD MAIOR – FROTA DISPONÍVEL
+    =============================== */
+    let htmlDisponiveis = `
       <div class="card">
-        <h3>Ordem ${v.ordem}</h3>
-        <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
-        <p><strong>Sanitário:</strong> ${v.sanitario}</p>
-        <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
+        <h3>Frota Disponível</h3>
+        ${!dados.disponiveis.length 
+          ? "<p>Nenhum veículo disponível.</p>"
+          : dados.disponiveis.map(v => `
+            <div style="margin-top:10px; padding:10px; background:#fff; border-radius:8px;">
+              <p><strong>Ordem:</strong> ${v.ordem}</p>
+              <p><strong>Nº Poltronas:</strong> ${v.poltronas}</p>
+              <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+              <p><strong>Ar Condicionado:</strong> ${v.ar}</p>
+            </div>
+          `).join("")}
       </div>
-    `).join("");
+    `;
+
+    /* ===============================
+       CARD MAIOR – VEÍCULOS RETIDOS
+    =============================== */
+    let htmlRetidos = `
+      <div class="card">
+        <h3>Veículos Retidos</h3>
+        ${!dados.retidos.length 
+          ? "<p>Nenhum veículo retido.</p>"
+          : dados.retidos.map(v => `
+            <div style="margin-top:10px; padding:10px; background:#fff; border-radius:8px;">
+              <p><strong>Carro:</strong> ${v.carro}</p>
+              <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+              <p><strong>Garagem:</strong> ${v.garagem}</p>
+            </div>
+          `).join("")}
+      </div>
+    `;
+
+    res.innerHTML = htmlDisponiveis + htmlRetidos;
   });
 }
+
 
 /* ===============================
    STATUS DA FROTA – PESQUISAR
