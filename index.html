@@ -141,6 +141,7 @@ button {
     <button onclick="trocarAba('status')">Status da Frota</button>
   </div>
 
+  <!-- ABA CONSULTA -->
   <div id="aba-consulta">
     <select id="linha"><option value="">Selecione – Linha</option></select>
     <select id="setor"><option value="">Selecione – Setor / NOP</option></select>
@@ -150,10 +151,14 @@ button {
     <div id="resultado"></div>
   </div>
 
+  <!-- ABA STATUS -->
   <div id="aba-status" class="hidden">
     <button onclick="atualizarStatus()">Atualizar – Frota Disponível</button>
+    <button onclick="buscarPlantao()">Plantão</button>
+
     <input type="number" id="ordemStatus" placeholder="Pesquisar por Nº de Ordem">
     <button onclick="buscarStatus()">Pesquisar</button>
+
     <div id="loadingStatus">Carregando...</div>
     <div id="resultadoStatus"></div>
   </div>
@@ -161,7 +166,7 @@ button {
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzT7o_xUP0tT2tPlqjXDDMKcqjq67Ycne_0Ip9l5cR1yVIjdHCJzpGr6P1jEgGKNkSH/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwTrIUfXiuvD1rz5YrNE6Ox-cuDLsyKr3EPvPboVza3lHJ_wjFr9XF__bAyuroc123n/exec";
 
 /* ===============================
    TROCA DE ABAS
@@ -199,10 +204,18 @@ function atualizarStatus() {
   .then(dados => {
     load.style.display = "none";
 
+    const totalDisponiveis = dados.disponiveis.length;
+    const totalComAr = dados.disponiveis.filter(v =>
+      String(v.ar).toUpperCase() === "SIM"
+    ).length;
+
     const htmlDisponiveis = `
       <div class="card">
         <h3>Frota Disponível</h3>
-        ${dados.disponiveis.length
+        <p><strong>Total de veículos disponíveis:</strong> ${totalDisponiveis}</p>
+        <p><strong>Com Ar-Condicionado:</strong> ${totalComAr}</p>
+
+        ${totalDisponiveis
           ? dados.disponiveis.map(v => `
               <div class="operacao-item">
                 <p><strong>Ordem:</strong> ${v.ordem}</p>
@@ -229,6 +242,45 @@ function atualizarStatus() {
       </div>`;
 
     res.innerHTML = htmlDisponiveis + htmlRetidos;
+  });
+}
+
+/* ===============================
+   PLANTÃO
+=============================== */
+function buscarPlantao() {
+  const res = document.getElementById("resultadoStatus");
+  const load = document.getElementById("loadingStatus");
+
+  res.innerHTML = "";
+  load.style.display = "block";
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "plantao" })
+  })
+  .then(r => r.json())
+  .then(lista => {
+    load.style.display = "none";
+
+    if (!lista.length) {
+      res.innerHTML = "<p>Nenhum plantão encontrado.</p>";
+      return;
+    }
+
+    res.innerHTML = `
+      <div class="card">
+        <h3>Plantão</h3>
+        ${lista.map(p => `
+          <div class="operacao-item">
+            <p><strong>Origem:</strong> ${p.origem}</p>
+            <p><strong>Destino:</strong> ${p.destino}</p>
+            <p><strong>Horário:</strong> ${p.horario}</p>
+            <p><strong>Motorista:</strong> ${p.motorista}</p>
+          </div>
+        `).join("")}
+      </div>`;
   });
 }
 
