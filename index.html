@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -44,6 +45,7 @@ header img {
   border-radius: 12px;
 }
 
+/* TABS */
 .tabs {
   display: flex;
   gap: 8px;
@@ -56,8 +58,6 @@ header img {
   background: #e5e7eb;
   color: var(--azul);
   border-radius: 8px;
-  border: none;
-  cursor: pointer;
 }
 
 .tabs button.active {
@@ -99,6 +99,7 @@ button {
   color: var(--azul);
 }
 
+/* CARDS */
 .card {
   background: var(--cinza);
   border-left: 5px solid var(--azul);
@@ -123,12 +124,6 @@ button {
   border-radius: 8px;
   padding: 10px;
   margin-top: 10px;
-}
-
-.tratativa {
-  color: #b91c1c;
-  font-weight: bold;
-  margin-top: 6px;
 }
 
 .acoes-status {
@@ -183,7 +178,6 @@ button {
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwTrIUfXiuvD1rz5YrNE6Ox-cuDLsyKr3EPvPboVza3lHJ_wjFr9XF__bAyuroc123n/exec";
-const API_OCORRENCIAS = "https://script.google.com/macros/s/AKfycbwppmMfiEuUhfwjWUOmne3MsznX7w4ztoTm8FZgcSxNEceWAiaY-31M7rVvXUkl8gfB/exec";
 
 /* TROCA DE ABAS */
 function trocarAba(aba) {
@@ -221,7 +215,7 @@ function preencher(id, lista) {
   });
 }
 
-/* CONSULTA VEÍCULOS */
+/* CONSULTA DE VEÍCULOS */
 function buscar() {
   const linha = document.getElementById("linha").value;
   const setor = document.getElementById("setor").value;
@@ -261,29 +255,69 @@ function buscar() {
   });
 }
 
-/* PLANTÃO COM VERIFICAÇÃO DE TRATATIVA */
-async function buscarPlantao() {
+/* STATUS – ATUALIZAR */
+function atualizarStatus() {
   const res = document.getElementById("resultadoStatus");
   const load = document.getElementById("loadingStatus");
 
   res.innerHTML = "";
   load.style.display = "block";
 
-  try {
-
-    const plantaoResp = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "plantao" })
-    });
-
-    const lista = await plantaoResp.json();
-
-    const ocorrResp = await fetch(API_OCORRENCIAS);
-    const ocorrencias = await ocorrResp.json();
-
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "statusFrota" })
+  })
+  .then(r => r.json())
+  .then(dados => {
     load.style.display = "none";
 
+    const total = dados.disponiveis.length;
+    const totalComAr = dados.disponiveis.filter(v =>
+      String(v.ar || "").trim().toUpperCase() === "SIM"
+    ).length;
+
+    res.innerHTML = `
+      <div class="card">
+        <h3>Frota Disponível</h3>
+        <p><strong>Total disponíveis:</strong> ${total}</p>
+        <p><strong>Com Ar-Condicionado:</strong> ${totalComAr}</p>
+        ${dados.disponiveis.map(v => `
+          <div class="operacao-item">
+            <p><strong>Ordem:</strong> ${v.ordem}</p>
+            <p><strong>Poltronas:</strong> ${v.poltronas}</p>
+            <p><strong>Sanitário:</strong> ${v.sanitario}</p>
+            <p><strong>Ar:</strong> ${v.ar}</p>
+          </div>`).join("")}
+      </div>
+      <div class="card">
+        <h3>Veículos Retidos</h3>
+        ${dados.retidos.map(v => `
+          <div class="operacao-item">
+            <p><strong>Carro:</strong> ${v.carro}</p>
+            <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+            <p><strong>Garagem:</strong> ${v.garagem}</p>
+          </div>`).join("")}
+      </div>`;
+  });
+}
+
+/* STATUS – PLANTÃO */
+function buscarPlantao() {
+  const res = document.getElementById("resultadoStatus");
+  const load = document.getElementById("loadingStatus");
+
+  res.innerHTML = "";
+  load.style.display = "block";
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "plantao" })
+  })
+  .then(r => r.json())
+  .then(lista => {
+    load.style.display = "none";
     if (!lista.length) {
       res.innerHTML = "<p>Nenhum plantão encontrado.</p>";
       return;
@@ -292,30 +326,50 @@ async function buscarPlantao() {
     res.innerHTML = `
       <div class="card">
         <h3>Plantão</h3>
-        ${lista.map(p => {
-
-          let pendente = ocorrencias.some(o =>
-            o.motorista &&
-            o.status &&
-            o.motorista.trim().toUpperCase() === p.motorista.trim().toUpperCase() &&
-            o.status.trim().toUpperCase() === "NÃO TRATADO"
-          );
-
-          return `
+        ${lista.map(p => `
           <div class="operacao-item">
             <p><strong>Origem:</strong> ${p.origem}</p>
             <p><strong>Destino:</strong> ${p.destino}</p>
             <p><strong>Horário:</strong> ${p.horario}</p>
             <p><strong>Motorista:</strong> ${p.motorista}</p>
-            ${pendente ? `<p class="tratativa">⚠ Tratativa pendente</p>` : ""}
-          </div>`;
-        }).join("")}
+          </div>`).join("")}
       </div>`;
-      
-  } catch (e) {
-    load.style.display = "none";
-    res.innerHTML = "<p>Erro ao buscar dados.</p>";
-  }
+  });
+}
+
+/* STATUS – BUSCAR POR ORDEM */
+function buscarStatus() {
+  const ordem = document.getElementById("ordemStatus").value;
+  if (!ordem) return alert("Informe o Nº de Ordem");
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "buscarStatus", ordem })
+  })
+  .then(r => r.json())
+  .then(v => {
+    let html = `<div class="card"><h3>Ordem ${ordem}</h3>`;
+    if (v.status === "Operação") {
+      html += `<p><strong>Status:</strong> Em Operação</p>`;
+      v.operacoes.forEach(o => {
+        html += `
+          <div class="operacao-item">
+            <p><strong>Origem:</strong> ${o.origem}</p>
+            <p><strong>Destino:</strong> ${o.destino}</p>
+            <p><strong>Horário:</strong> ${o.horario}</p>
+            <p><strong>Motorista:</strong> ${o.motorista}</p>
+          </div>`;
+      });
+    } else if (v.status === "Retido") {
+      html += `<p><strong>Status:</strong> Retido</p>
+               <p><strong>Reclamação:</strong> ${v.reclamacao}</p>
+               <p><strong>Garagem:</strong> ${v.garagem}</p>`;
+    } else {
+      html += `<p><strong>Status:</strong> Disponível</p>`;
+    }
+    document.getElementById("resultadoStatus").innerHTML = html + "</div>";
+  });
 }
 </script>
 
