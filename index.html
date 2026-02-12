@@ -331,6 +331,8 @@ async function buscarPlantao() {
       body: JSON.stringify({ action: "plantao" })
     });
 
+    if (!plantaoResp.ok) throw new Error("Erro na API principal");
+
     const lista = await plantaoResp.json();
 
     if (!lista.length) {
@@ -339,18 +341,14 @@ async function buscarPlantao() {
       return;
     }
 
-    // 🔹 Pega mês atual
+    // 🔹 Buscar ocorrências via GET
     const mesAtual = String(new Date().getMonth() + 1).padStart(2, "0");
 
-    // 🔹 Buscar ocorrências enviando parâmetros obrigatórios
-    const ocorrResp = await fetch(API_OCORRENCIAS, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        aba: "Resumo ocorrências",
-        mes: mesAtual
-      })
-    });
+    const ocorrResp = await fetch(
+      `${API_OCORRENCIAS}?aba=Resumo%20ocorrências&mes=${mesAtual}`
+    );
+
+    if (!ocorrResp.ok) throw new Error("Erro na API de ocorrências");
 
     const ocorrencias = await ocorrResp.json();
 
@@ -404,11 +402,10 @@ async function buscarPlantao() {
     res.innerHTML = `
       <div class="card">
         <h3>Erro</h3>
-        <p>Falha ao buscar dados.</p>
+        <p>${erro.message}</p>
       </div>`;
   }
 }
-
 
 /* STATUS – BUSCAR POR ORDEM (INALTERADO) */
 function buscarStatus() {
