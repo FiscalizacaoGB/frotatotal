@@ -44,6 +44,7 @@ header img {
   border-radius: 12px;
 }
 
+/* TABS */
 .tabs {
   display: flex;
   gap: 8px;
@@ -56,8 +57,6 @@ header img {
   background: #e5e7eb;
   color: var(--azul);
   border-radius: 8px;
-  border: none;
-  cursor: pointer;
 }
 
 .tabs button.active {
@@ -107,17 +106,6 @@ button {
   margin-top: 15px;
   border-radius: 10px;
   font-size: 14px;
-}
-
-.card-vermelho {
-  background: #fee2e2;
-  border-left: 5px solid #dc2626;
-}
-
-.tratativa-texto {
-  color: #b91c1c;
-  font-weight: bold;
-  margin-top: 6px;
 }
 
 .card h3 {
@@ -189,7 +177,6 @@ button {
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwTrIUfXiuvD1rz5YrNE6Ox-cuDLsyKr3EPvPboVza3lHJ_wjFr9XF__bAyuroc123n/exec";
-const API_OCORRENCIAS = "https://script.google.com/macros/s/AKfycbwppmMfiEuUhfwjWUOmne3MsznX7w4ztoTm8FZgcSxNEceWAiaY-31M7rVvXUkl8gfB/exec";
 
 /* TROCA DE ABAS */
 function trocarAba(aba) {
@@ -227,7 +214,7 @@ function preencher(id, lista) {
   });
 }
 
-/* CONSULTA VEÍCULOS */
+/* CONSULTA DE VEÍCULOS */
 function buscar() {
   const linha = document.getElementById("linha").value;
   const setor = document.getElementById("setor").value;
@@ -267,7 +254,7 @@ function buscar() {
   });
 }
 
-/* STATUS – ATUALIZAR (INALTERADO) */
+/* STATUS – ATUALIZAR */
 function atualizarStatus() {
   const res = document.getElementById("resultadoStatus");
   const load = document.getElementById("loadingStatus");
@@ -314,100 +301,58 @@ function atualizarStatus() {
   });
 }
 
-/* STATUS – PLANTÃO COM TRATATIVA */
-async function buscarPlantao() {
+/* STATUS – PLANTÃO */
+/* STATUS – PLANTÃO */
+function buscarPlantao() {
   const res = document.getElementById("resultadoStatus");
   const load = document.getElementById("loadingStatus");
 
   res.innerHTML = "";
   load.style.display = "block";
 
-  try {
-
-    // 🔹 Buscar plantão
-    const plantaoResp = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "plantao" })
-    });
-
-    if (!plantaoResp.ok) throw new Error("Erro na API principal");
-
-    const lista = await plantaoResp.json();
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action: "plantao" })
+  })
+  .then(r => r.json())
+  .then(lista => {
+    load.style.display = "none";
 
     if (!lista.length) {
-      load.style.display = "none";
       res.innerHTML = "<p>Nenhum plantão encontrado.</p>";
       return;
     }
 
-    // 🔹 Buscar ocorrências via GET
-    const mesAtual = String(new Date().getMonth() + 1).padStart(2, "0");
+    // 🔹 ORGANIZA: Salvador primeiro
+    const listaOrdenada = [...lista].sort((a, b) => {
+      const destinoA = (a.destino || "").trim().toLowerCase();
+      const destinoB = (b.destino || "").trim().toLowerCase();
 
-    const ocorrResp = await fetch(
-      `${API_OCORRENCIAS}?aba=Resumo%20ocorrências&mes=${mesAtual}`
-    );
+      const aEhSalvador = destinoA === "salvador";
+      const bEhSalvador = destinoB === "salvador";
 
-    if (!ocorrResp.ok) throw new Error("Erro na API de ocorrências");
-
-    const ocorrencias = await ocorrResp.json();
-
-    load.style.display = "none";
+      if (aEhSalvador && !bEhSalvador) return -1;
+      if (!aEhSalvador && bEhSalvador) return 1;
+      return 0;
+    });
 
     res.innerHTML = `
       <div class="card">
         <h3>Plantão</h3>
-        ${lista.map(p => {
-
-          let cardVermelho = false;
-
-          if (
-            p.origem?.trim().toLowerCase() === "plantão" &&
-            p.destino?.trim().toLowerCase() === "salvador"
-          ) {
-
-            const primeiroNomePlantao = p.motorista
-              ? p.motorista.trim().split(" ")[0].toUpperCase()
-              : "";
-
-            cardVermelho = ocorrencias.some(o => {
-              if (!o.motorista || !o.status) return false;
-
-              const primeiroNomeOcorrencia = o.motorista
-                .trim()
-                .split(" ")[0]
-                .toUpperCase();
-
-              return (
-                primeiroNomePlantao === primeiroNomeOcorrencia &&
-                o.status.trim().toUpperCase() === "NÃO TRATADO"
-              );
-            });
-          }
-
-          return `
-          <div class="operacao-item ${cardVermelho ? "card-vermelho" : ""}">
+        ${listaOrdenada.map(p => `
+          <div class="operacao-item">
             <p><strong>Origem:</strong> ${p.origem}</p>
             <p><strong>Destino:</strong> ${p.destino}</p>
             <p><strong>Horário:</strong> ${p.horario}</p>
             <p><strong>Motorista:</strong> ${p.motorista}</p>
-            ${cardVermelho ? `<p class="tratativa-texto">⚠ Tratativa pendente</p>` : ""}
-          </div>`;
-        }).join("")}
+          </div>`).join("")}
       </div>`;
-
-  } catch (erro) {
-    load.style.display = "none";
-    console.error("Erro real:", erro);
-    res.innerHTML = `
-      <div class="card">
-        <h3>Erro</h3>
-        <p>${erro.message}</p>
-      </div>`;
-  }
+  });
 }
 
-/* STATUS – BUSCAR POR ORDEM (INALTERADO) */
+
+/* STATUS – BUSCAR POR ORDEM */
 function buscarStatus() {
   const ordem = document.getElementById("ordemStatus").value;
   if (!ordem) return alert("Informe o Nº de Ordem");
