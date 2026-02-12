@@ -324,6 +324,7 @@ async function buscarPlantao() {
 
   try {
 
+    // 🔹 Buscar plantão
     const plantaoResp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -332,15 +333,28 @@ async function buscarPlantao() {
 
     const lista = await plantaoResp.json();
 
-    const ocorrResp = await fetch(API_OCORRENCIAS);
-    const ocorrencias = await ocorrResp.json();
-
-    load.style.display = "none";
-
     if (!lista.length) {
+      load.style.display = "none";
       res.innerHTML = "<p>Nenhum plantão encontrado.</p>";
       return;
     }
+
+    // 🔹 Pega mês atual
+    const mesAtual = String(new Date().getMonth() + 1).padStart(2, "0");
+
+    // 🔹 Buscar ocorrências enviando parâmetros obrigatórios
+    const ocorrResp = await fetch(API_OCORRENCIAS, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        aba: "Resumo ocorrências",
+        mes: mesAtual
+      })
+    });
+
+    const ocorrencias = await ocorrResp.json();
+
+    load.style.display = "none";
 
     res.innerHTML = `
       <div class="card">
@@ -386,14 +400,15 @@ async function buscarPlantao() {
 
   } catch (erro) {
     load.style.display = "none";
+    console.error("Erro real:", erro);
     res.innerHTML = `
       <div class="card">
         <h3>Erro</h3>
         <p>Falha ao buscar dados.</p>
       </div>`;
-    console.error("Erro detalhado:", erro);
   }
 }
+
 
 /* STATUS – BUSCAR POR ORDEM (INALTERADO) */
 function buscarStatus() {
